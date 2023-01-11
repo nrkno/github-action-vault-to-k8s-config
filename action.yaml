@@ -1,0 +1,39 @@
+# action.yml
+name: 'vault-to-k8s-config'
+description: 'Create kube-config from vault secrets and vault kubernetes auth endpoint'
+inputs:
+  vault-url:  
+    description: 'URL to your vault'
+    required: true
+  vault-role: 
+    description: 'Your github applications vault role'
+    required: true
+  cluster: 
+    description: 'The name of your kubernetes cluster'
+    required: true
+  namespace:
+    description: 'The name of your kubernetes namespace'
+    required: true
+  ca-cert:
+    description: 'The path in vault to your secret containing the kubernetes ca cert of your cluster'
+    required: true
+  k8s-api-url: 
+    description: 'The path in vault to your secret containing the kubernetes api url of your cluster'
+    required: true
+  k8s-auth:
+    description: 'The path in vault to the k8s auth endpoint for your github application'
+    required: true
+outputs:
+  k8s-config: # id of output
+    description: 'The kube-config for your dynamic service account'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ vault-url }}
+    - ${{ vault-role }}
+    - ${{ cluster }}
+    - ${{ namespace }}
+    - ${{ ca-cert }}
+    - ${{ k8s-api-url }}
+    - ${{ k8s-auth }}
