@@ -1,6 +1,6 @@
 # vault-to-k8s-config
 Github Action to create a kubernetes-config from vault kubernetes auth and secrets in vault. Can be used in k8s-set-context action. 
-Created because the official hashicorp/vault action only supports `get` requests, while the kubernetes auth method in vault uses a POST request.
+Created because the official hashicorp/vault action only supports `GET` requests, while the kubernetes auth method in vault uses `POST` requests.
 
 ### Example usage:
 ```yaml
