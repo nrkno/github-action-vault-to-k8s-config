@@ -14,6 +14,7 @@ Created because the official hashicorp/vault action only supports `GET` requests
      ca-cert: path/in/vault/to/secret/named-secret-with-ca-cert
      k8s-api-url: path/in/vault/to/secret/named-secret-with-k8s-api-url
      k8s-auth: path/in/vault/to/k8s-auth/endpoint/
+     github_token: {{ secrets.GITHUB_TOKEN }}
 - uses: azure/k8s-set-context@v3
   with:
      method: kubeconfig
