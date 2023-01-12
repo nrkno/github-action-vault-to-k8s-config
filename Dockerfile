@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-RUN apk --no-cache add util-linux-misc bash curl jq
+RUN apk --no-cache add coreutils util-linux-misc bash curl jq
 
 # Download and install latest version of vault
 RUN curl -L -o /tmp/vault.zip https://releases.hashicorp.com/vault/1.12.2/vault_1.12.2_linux_amd64.zip \
