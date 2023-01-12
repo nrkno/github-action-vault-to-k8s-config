@@ -29,9 +29,9 @@ inputs:
 #   k8s-auth:
 #     description: 'The path in vault to the k8s auth endpoint for your github application'
 #     required: true
-# outputs:
-#   k8s-config: # id of output
-#     description: 'The kube-config for your dynamic service account'
+outputs:
+  k8s-config:
+    description: 'The kube-config for your dynamic service account'
 runs:
   using: 'docker'
   image: 'Dockerfile'
