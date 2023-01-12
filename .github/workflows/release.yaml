@@ -1,0 +1,25 @@
+name: "Docker Build Push and Deploy to k8s"
+
+### Triggers ###
+# Criterias that needs to be met to run this pipeline see https://docs.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  push:
+    paths-ignore:
+    - 'LICENSE'
+    - 'README.md'
+    branches:
+      - main
+  # workflow_dispatch:
+  #   branches:
+  #     - main
+jobs:
+  commitlint_and_release:
+    name: Commit lint and release
+    uses: nrkno/github-workflow-semantic-release/.github/workflows/workflow.yaml@v1
+    with:
+      # Define the type of machine to run the jobs on.
+      # Default: self-hosted
+      runs-on: ubuntu-latest
+      # Enable release on main/master
+      # Default: true
+      release-enabled: true

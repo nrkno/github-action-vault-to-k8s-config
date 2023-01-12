@@ -48,11 +48,11 @@ runs:
     - --vault-path 
     - ${{ inputs.vault-path }}
     - --cluster-name 
-    - ${{ inputs.k8s-cluster-name }}
+    - ${{ inputs.cluster-name }}
     - --cluster-namespace 
-    - ${{ inputs.k8s-cluster-namespace }}
+    - ${{ inputs.cluster-namespace }}
     - --cluster-rolebinding 
-    - ${{ inputs.k8s-cluster-rolebinding }}
+    - ${{ inputs.cluster-rolebinding }}
     - --ca-cert-path
     - ${{ inputs.ca-cert-path }}
     - --ca-cert-key

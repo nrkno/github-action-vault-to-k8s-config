@@ -6,17 +6,17 @@
 help()
 {
     echo "Usage: [ -a | --vault-address ]
-       [ -r | --vault-role  ]
-       [ -p | --vault-path ]
-       [ -t | --vault-sa-ttl ]
-       [ -c | --cluster-name ]
-       [ -n | --cluster-namespace ]
-       [ -b | --cluster-rolebinding ]
-       [ -cp | --ca-cert-path ]
-       [ -ck | --ca-cert-key ]
-       [ -hp | --cluster-host-path ]
-       [ -hk | --cluster-host-key ]
-       [ -h | --help]"
+      [ -r | --vault-role  ]
+      [ -p | --vault-path ]
+      [ -t | --vault-sa-ttl ]
+      [ -c | --cluster-name ]
+      [ -n | --cluster-namespace ]
+      [ -b | --cluster-rolebinding ]
+      [ -cp | --ca-cert-path ]
+      [ -ck | --ca-cert-key ]
+      [ -hp | --cluster-host-path ]
+      [ -hk | --cluster-host-key ]
+      [ -h | --help]"
     exit 2
 }
 
