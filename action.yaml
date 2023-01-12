@@ -2,21 +2,21 @@
 name: 'vault-to-k8s-config'
 description: 'Create kube-config from vault secrets and vault kubernetes auth endpoint'
 inputs:
-  github-token:
-    description: 'Your github token'
-    required: true
-  vault-url:  
-    description: 'URL to your vault'
+  vault-address:  
+    description: 'address to your vault'
     required: true
   vault-role: 
     description: 'Your github applications vault role'
     required: true
-#   cluster: 
-#     description: 'The name of your kubernetes cluster'
-#     required: true
-#   namespace:
-#     description: 'The name of your kubernetes namespace'
-#     required: true
+  k8s-cluster-name: 
+    description: 'The name of your kubernetes cluster'
+    required: true
+  k8s-namespace:
+    description: 'The name of your kubernetes namespace'
+    required: true
+  k8s-cluster-rolebinding:
+    description: 'Rolebinding to give ServiceAccount in the cluster'
+    required: true
 #   ca-cert:
 #     description: 'The path in vault to your secret containing the kubernetes ca cert of your cluster'
 #     required: true
@@ -33,9 +33,12 @@ runs:
   using: 'docker'
   image: 'Dockerfile'
   args:
-    - ${{ inputs.github-token }}
-    - ${{ inputs.vault-url }}
-    - ${{ inputs.vault-role }}
+    - --vault-address {{ inputs.vault-address}}
+    - --vault-role ${{ inputs.vault-role }}
+    - --vault-path ${{ inputs.vault-path }}
+    - --cluster-name ${{ inputs.k8s-cluster-name }}
+    - --cluster-namespace ${{ inputs.k8s-cluster-namespace }}
+    - --cluster-rolebinding ${{ inputs.k8s-cluster-rolebinding }}
     # - ${{ cluster }}
     # - ${{ namespace }}
     # - ${{ ca-cert }}
