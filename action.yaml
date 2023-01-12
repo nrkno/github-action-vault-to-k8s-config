@@ -8,10 +8,13 @@ inputs:
   vault-role: 
     description: 'Your github applications vault role'
     required: true
+  vault-path: 
+    description: 'path in vault to login github-workflow'
+    required: true
   k8s-cluster-name: 
     description: 'The name of your kubernetes cluster'
     required: true
-  k8s-namespace:
+  k8s-cluster-namespace:
     description: 'The name of your kubernetes namespace'
     required: true
   k8s-cluster-rolebinding:
