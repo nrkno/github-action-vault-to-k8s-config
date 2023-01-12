@@ -1,6 +1,6 @@
 #!/bin/bash
-set -e
-set -x
+# set -e
+# set -x
 
 # Help function
 help()
@@ -11,16 +11,22 @@ help()
        [ -t | --vault-sa-ttl ]
        [ -c | --cluster-name ]
        [ -n | --cluster-namespace ]
+       [ -b | --cluster-rolebinding ]
+       [ -cp | --ca-cert-path ]
+       [ -ck | --ca-cert-key ]
+       [ -hp | --cluster-host-path ]
+       [ -hk | --cluster-host-key ]
        [ -h | --help]"
     exit 2
 }
 
 # Define arguments to be parsed
-SHORT_ARGS="a:r:p:t:c:n:h"
-LONG_ARGS="vault-address:,vault-role:,vault-path:,vault-sa-ttl:,cluster-name:,cluster-namespace:,help"
+SHORT_ARGS="a:r:p:t:c:n:b:cp:ck:hp:hk:h"
+LONG_ARGS="vault-address:,vault-role:,vault-path:,vault-sa-ttl:,cluster-name:,cluster-namespace:\
+    ,cluster-rolebinding:, ca-cert-path:, ca-cert-key: cluster-host-path:, cluster-host-key:,help"
 
 # Proccess arguments
-OPTS=$(getopt -o $SHORT_ARGS --long $LONG_ARGS -u -- "$@")
+OPTS=$(getopt --options="$SHORT_ARGS" --longoptions="$LONG_ARGS" -u -- "$@")
 
 # Print help if no arguments are provided
 [[ "$#" -eq 0 ]] && help
@@ -28,13 +34,18 @@ OPTS=$(getopt -o $SHORT_ARGS --long $LONG_ARGS -u -- "$@")
 eval set -- "$OPTS"
 while [ : ]; do
     case "$1" in
-        -a | --vault-address)       VAULT_ADDR="$2"; shift 2 ;;
-        -r | --vault-role)          VAULT_ROLE=$2; shift 2 ;;
-        -p | --vault-path)          VAULT_PATH=$2; shift 2 ;;
-        -t | --vault-sa-ttl)        VAULT_SA_TTL=$2; shift 2 ;;
-        -c | --cluster-name)        CLUSTER_NAME=$2; shift 2 ;;
-        -n | --cluster-namespace)   CLUSTER_NAMESPACE=$2; shift 2 ;;
-        -h | --help)                help; shift 2 ;;
+        -a | --vault-address)       export VAULT_ADDR="$2"; shift 2 ;;
+        -r | --vault-role)          export VAULT_ROLE=$2; shift 2 ;;
+        -p | --vault-path)          export VAULT_PATH=$2; shift 2 ;;
+        -t | --vault-sa-ttl)        export VAULT_SA_TTL=$2; shift 2 ;;
+        -c | --cluster-name)        export CLUSTER_NAME=$2; shift 2 ;;
+        -n | --cluster-namespace)   export CLUSTER_NAMESPACE=$2; shift 2 ;;
+        -b | --cluster-rolebinding) export CLUSTER_ROLE_BINDING=$2; shift 2 ;;
+        -cp | --ca-cert-path)       export CERT_PATH=$2; shift 2 ;;
+        -ck | --ca-cert-key)        export CERT_KEY=$2; shift 2 ;;
+        -hp | --cluster-host-path)  export HOST_PATH=$2; shift 2 ;;
+        -hk | --cluster-host-key)   export HOST_KEY=$2; shift 2 ;;
+        -h | --help)                help ;;
         --)                         shift; break ;;
         *)                          echo "Unexpected argument $1"; help
     esac
@@ -47,56 +58,66 @@ done
 # Defaults if not provided
 VAULT_PATH=${VAULT_PATH:-"jwt-github"}
 VAULT_SA_TTL=${VAULT_SA_TTL:-"10m"}
-CLUSTER_NAME=${CLUSTER_NAME:-"aks-plattform-int-nonprod-weu"}
-CLUSTER_NAMESPACE=${CLUSTER_NAMESPACE:-"default"}
 
 
 ### Vault authentication
 ##
 # Get token for this action
-curl -sSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL" | \
-jq "{ jwt: .value, role: \"$VAULT_ROLE\" }" > ./token.json
-GITHUB_VAULT_TOKEN=$(jq -r '.jwt' token.json)
+GITHUB_VAULT_TOKEN=$(curl -sSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r ".value")
 
 # Use github-token to get vault-token
 VAULT_TOKEN=$(vault write -field=token auth/$VAULT_PATH/login role=$VAULT_ROLE jwt=$GITHUB_VAULT_TOKEN)
 
 # Authenticate with vault with our new token
-vault login token=$VAULT_TOKEN
+vault login -no-print token=$VAULT_TOKEN
 
-# Create payload with required fields for POST request to Vault
-jq --null-input \
---arg cluster_namespace "${CLUSTER_NAMESPACE}" \
---arg vault_cluster_role_binding "${CLUSTER_ROLE_BINDING}" \
---arg vault_sa_ttl "${VAULT_SA_TTL}" \
-'{ "kubernetes_namespace": $cluster_namespace, "cluster_role_binding": $vault_cluster_role_binding, "ttl": $vault_sa_ttl }' \
-> payload.json
+# Get ca-cert and api-host for our cluster
+CLUSTER_HOST=$(vault read -field=$HOST_KEY $HOST_PATH)
+CLUSTER_CA_CERT=$(vault read -field=$CERT_KEY $CERT_PATH | base64 -i -w 0)
 
-# Get ServiceAccount for our cluster
-# Create ServiceAccount and get token and name for created ServiceAccount
-K8S_CREDS_REQUEST=$(curl --write-out '%{http_code}' -s -X POST -H "X-Vault-Token: ${VAULT_TOKEN}" --data @payload.json --output response.json "{{ '${{ secrets.PLATTFORM_VAULT_URL }}' }}/v1/kubernetes-${CLUSTER_NAME}/creds/${VAULT_ROLE}")
-if [[ "${K8S_CREDS_REQUEST}" == "200" ]]
-then
-    SERVICE_ACCOUNT_NAME=$(cat response.json | jq -r '.data.service_account_name')
-    SERVICE_ACCOUNT_TOKEN=$(cat response.json | jq -r '.data.service_account_token')
-    shred -u response.json payload.json
-else
-    echo "http_code: ${K8S_CREDS_REQUEST}. Retrival of kubernetes credentials failed"
-    shred -u payload.json
-    exit 1
-fi
+# write to vault with required fields for credentials to kubernetes
+K8S_CREDS_REQUEST=$(vault write --format=json kubernetes-${CLUSTER_NAME}/creds/${VAULT_ROLE}-${CLUSTER_ROLE_BINDING} \
+    kubernetes_namespace="${CLUSTER_NAMESPACE}" \
+    cluster_role_binding="false" \
+    ttl="${VAULT_SA_TTL}")
 
-### Kube-config setup
-##
-# Get secrets for our cluster
-CLUSTER_INFO=$(vault read -format json secret/applications/shared/kubernetes-config/$CLUSTER_NAME | jq -r '.data')
+# Clean up vault login
+shred -u ~/.vault-token
+
+# Unset variables we are done with
+unset VAULT_TOKEN
 
 # Get host of API-endpoint for cluster
-CLUSTER_HOST=$(jq '.host' <<< "$CLUSTER_INFO")
+SERVICE_ACCOUNT_NAME=$(jq -r '.data.service_account_name' <<< "$K8S_CREDS_REQUEST")
 
 # Get CA-Cert for cluster and base64 encode it (for portability)
-CLUSTER_CA_CERT=$(jq '.ca_cert' <<< "$CLUSTER_INFO" | base64 -i -w 0)
+SERVICE_ACCOUNT_TOKEN=$(jq -r '.data.service_account_token' <<< "$K8S_CREDS_REQUEST")
 
-# Use kubectl to create a config-file
+# Unset variables we are done with
+unset K8S_CREDS_REQUEST
+
+# Create cluster
 kubectl config set-cluster $CLUSTER_NAME --server=$CLUSTER_HOST
+
+# Set CA-Cert for our cluster
 kubectl config set clusters.$CLUSTER_NAME.certificate-authority-data $(echo $CLUSTER_CA_CERT)
+
+# Define credentials to use for our cluster
+kubectl config set-credentials $SERVICE_ACCOUNT_NAME --token="$SERVICE_ACCOUNT_TOKEN"
+
+# Create context to join cluster, credentials and namespace
+kubectl config set-context $CLUSTER_NAME --cluster="$CLUSTER_NAME" --user="$SERVICE_ACCOUNT_NAME" --namespace="$CLUSTER_NAMESPACE"
+
+# Unset variables we are done with
+unset CLUSTER_CA_CERT
+unset SERVICE_ACCOUNT_NAME
+unset SERVICE_ACCOUNT_TOKEN
+unset CLUSTER_NAMESPACE
+
+# Output kube-config
+echo 'k8s-config<<EOF' >> $GITHUB_OUTPUT
+echo "$(kubectl config view --raw)" >> $GITHUB_OUTPUT
+echo 'EOF' >> $GITHUB_OUTPUT
+
+# Clean up kubeconfig
+shred -u ~/.kube/config
