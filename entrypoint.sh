@@ -58,6 +58,7 @@ done
 # Defaults if not provided
 VAULT_PATH=${VAULT_PATH:-"jwt-github"}
 VAULT_SA_TTL=${VAULT_SA_TTL:-"10m"}
+CLUSTER_ROLE_BINDING=${CLUSTER_ROLE_BINDING:-"edit"}
 
 
 ### Vault authentication
