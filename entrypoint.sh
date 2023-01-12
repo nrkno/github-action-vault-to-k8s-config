@@ -8,7 +8,6 @@ help()
     echo "Usage: [ -a | --vault-address ]
        [ -r | --vault-role  ]
        [ -p | --vault-path ]
-       [ -d | --vault-audience ]
        [ -c | --cluster-name ]
        [ -h | --help]"
     exit 2
@@ -16,7 +15,7 @@ help()
 
 # Define arguments to be parsed
 SHORT_ARGS="a:r:p:c:h"
-LONG_ARGS="vault-address:,vault-role:,vault-path:,vault-audience:,cluster-name:,help"
+LONG_ARGS="vault-address:,vault-role:,vault-path:,cluster-name:,help"
 
 # Proccess arguments
 OPTS=$(getopt -o $SHORT_ARGS --long $LONG_ARGS -u -- "$@")
@@ -30,7 +29,6 @@ while [ : ]; do
         -a | --vault-address)   VAULT_ADDR="$2"; shift 2 ;;
         -r | --vault-role)      VAULT_ROLE=$2; shift 2 ;;
         -p | --vault-path)      VAULT_PATH=$2; shift 2 ;;
-        -d | --vault-audience)  VAULT_AUDIENCE=$2; shift 2 ;;
         -c | --cluster-name)    CLUSTER_NAME=$2; shift 2 ;;
         -h | --help)            help; shift 2 ;;
         --)                     shift; break ;;
