@@ -20,6 +20,9 @@ help()
     exit 2
 }
 
+# Some variables
+
+
 # Define arguments to be parsed
 SHORT_ARGS="a:r:p:t:c:n:b:cp:ck:hp:hk:h"
 LONG_ARGS="vault-address:,vault-role:,vault-path:,vault-sa-ttl:,cluster-name:,cluster-namespace:\
@@ -54,23 +57,26 @@ done
 # Required Arguments exit if empty
 [[ -z $VAULT_ADDR ]] && { echo "-a|--vault-address is a required argument"; exit 1; }
 [[ -z $VAULT_ROLE ]] && { echo "-r|--vault-role is a required argument"; exit 1; }
+[[ -z $CLUSTER_NAME ]] && { echo "-r|--cluster-name is a required argument"; exit 1; }
+[[ -z $CLUSTER_NAMESPACE ]] && { echo "-r|--cluster-namespace is a required argument"; exit 1; }
 
 # Defaults if not provided
 VAULT_PATH=${VAULT_PATH:-"jwt-github"}
 VAULT_SA_TTL=${VAULT_SA_TTL:-"10m"}
 CLUSTER_ROLE_BINDING=${CLUSTER_ROLE_BINDING:-"edit"}
+export KUBECONFIG="${RUNNER_TEMP}/kube-config"
 
 
 ### Vault authentication
 ##
 # Get token for this action
-GITHUB_VAULT_TOKEN=$(curl -sSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r ".value")
+GITHUB_TOKEN=$(curl -sSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r ".value")
 
 # Use github-token to get vault-token
-VAULT_TOKEN=$(vault write -field=token auth/$VAULT_PATH/login role=$VAULT_ROLE jwt=$GITHUB_VAULT_TOKEN)
+GITHUB_VAULT_TOKEN=$(vault write -field=token auth/$VAULT_PATH/login role=$VAULT_ROLE jwt=$GITHUB_TOKEN)
 
 # Authenticate with vault with our new token
-vault login -no-print token=$VAULT_TOKEN
+export VAULT_TOKEN=$(vault login -token-only token=$GITHUB_VAULT_TOKEN)
 
 # Get ca-cert and api-host for our cluster
 CLUSTER_HOST=$(vault read -field=$HOST_KEY $HOST_PATH)
@@ -82,10 +88,8 @@ K8S_CREDS_REQUEST=$(vault write --format=json kubernetes-${CLUSTER_NAME}/creds/$
     cluster_role_binding="false" \
     ttl="${VAULT_SA_TTL}")
 
-# Clean up vault login
-shred -u ~/.vault-token
-
 # Unset variables we are done with
+unset GITHUB_VAULT_TOKEN
 unset VAULT_TOKEN
 
 # Get host of API-endpoint for cluster
@@ -97,8 +101,12 @@ SERVICE_ACCOUNT_TOKEN=$(jq -r '.data.service_account_token' <<< "$K8S_CREDS_REQU
 # Unset variables we are done with
 unset K8S_CREDS_REQUEST
 
+echo CLUSTER_HOST $CLUSTER_HOST
+echo SERVICE_ACCOUNT_NAME $SERVICE_ACCOUNT_NAME
+echo SERVICE_ACCOUNT_TOKEN $SERVICE_ACCOUNT_TOKEN
+
 # Create cluster
-kubectl config set-cluster $CLUSTER_NAME --server=$CLUSTER_HOST
+kubectl config set clusters $CLUSTER_NAME --server=$CLUSTER_HOST
 
 # Set CA-Cert for our cluster
 kubectl config set clusters.$CLUSTER_NAME.certificate-authority-data $(echo $CLUSTER_CA_CERT)
@@ -117,8 +125,7 @@ unset CLUSTER_NAMESPACE
 
 # Output kube-config
 echo 'k8s-config<<EOF' >> $GITHUB_OUTPUT
-echo "$(kubectl config view --raw)" >> $GITHUB_OUTPUT
+cat $KUBECONFIG >> $GITHUB_OUTPUT
 echo 'EOF' >> $GITHUB_OUTPUT
 
-# Clean up kubeconfig
-shred -u ~/.kube/config
+unset KUBECONFIG
