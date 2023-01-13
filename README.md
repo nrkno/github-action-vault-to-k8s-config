@@ -45,7 +45,7 @@ Created because the official hashicorp/vault action only supports `GET` requests
 
 ## Example usage:
 ```yaml
-- uses: nrkno/vault-to-k8s-config
+- uses: nrkno/github-action-vault-to-k8s-config
   id: vault-to-k8s-config
   with:
     vault-address: https://vault.your.com:8200
@@ -61,3 +61,7 @@ Created because the official hashicorp/vault action only supports `GET` requests
      method: kubeconfig
      kubeconfig: ${{ steps.vault-to-k8s-config.outputs.k8s-config }}
 ```
+
+## Contributing
+Create an issue and optionally a pull-request.
+Use semantic commit messages.
