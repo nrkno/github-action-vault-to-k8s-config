@@ -2,38 +2,62 @@
 name: 'vault-to-k8s-config'
 description: 'Create kube-config from vault secrets and vault kubernetes auth endpoint'
 inputs:
-  vault-url:  
-    description: 'URL to your vault'
+  vault-address:  
+    description: 'address to your vault'
     required: true
   vault-role: 
     description: 'Your github applications vault role'
     required: true
-  cluster: 
+  vault-path:
+    description: 'Auth path for vault'
+    default: jwt-github
+    required: false
+  cluster-name: 
     description: 'The name of your kubernetes cluster'
     required: true
-  namespace:
+  cluster-namespace:
     description: 'The name of your kubernetes namespace'
     required: true
-  ca-cert:
+  cluster-rolebinding:
+    description: 'Rolebinding to give ServiceAccount in the cluster'
+    required: false
+    default: edit
+  ca-cert-path:
     description: 'The path in vault to your secret containing the kubernetes ca cert of your cluster'
     required: true
-  k8s-api-url: 
+  ca-cert-key:
+    description: 'The secret key in ca-cert-path which contains the ca cert of your cluster'
+    required: true
+  cluster-host-path: 
     description: 'The path in vault to your secret containing the kubernetes api url of your cluster'
     required: true
-  k8s-auth:
-    description: 'The path in vault to the k8s auth endpoint for your github application'
+  cluster-host-key: 
+    description: 'The secret key in cluster-host-path which contains the api url of your cluster'
     required: true
 outputs:
-  k8s-config: # id of output
+  k8s-config:
     description: 'The kube-config for your dynamic service account'
 runs:
   using: 'docker'
   image: 'Dockerfile'
   args:
-    - ${{ vault-url }}
-    - ${{ vault-role }}
-    - ${{ cluster }}
-    - ${{ namespace }}
-    - ${{ ca-cert }}
-    - ${{ k8s-api-url }}
-    - ${{ k8s-auth }}
+    - --vault-address 
+    - ${{ inputs.vault-address}}
+    - --vault-role 
+    - ${{ inputs.vault-role }}
+    - --vault-path 
+    - ${{ inputs.vault-path }}
+    - --cluster-name 
+    - ${{ inputs.cluster-name }}
+    - --cluster-namespace 
+    - ${{ inputs.cluster-namespace }}
+    - --cluster-rolebinding 
+    - ${{ inputs.cluster-rolebinding }}
+    - --ca-cert-path
+    - ${{ inputs.ca-cert-path }}
+    - --ca-cert-key
+    - ${{ inputs.ca-cert-key }}
+    - --cluster-host-path
+    - ${{ inputs.cluster-host-path }}
+    - --cluster-host-key
+    - ${{ inputs.cluster-host-key }}

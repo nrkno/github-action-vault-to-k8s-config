@@ -1,0 +1,9 @@
+on:
+  pull_request:
+
+jobs:
+  commitlint:
+    uses: nrkno/github-workflow-semantic-release/.github/workflows/workflow.yaml@v1
+    with:
+      runs-on: self-hosted
+      release-enabled: false
