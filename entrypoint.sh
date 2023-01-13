@@ -101,12 +101,8 @@ SERVICE_ACCOUNT_TOKEN=$(jq -r '.data.service_account_token' <<< "$K8S_CREDS_REQU
 # Unset variables we are done with
 unset K8S_CREDS_REQUEST
 
-echo CLUSTER_HOST $CLUSTER_HOST
-echo SERVICE_ACCOUNT_NAME $SERVICE_ACCOUNT_NAME
-echo SERVICE_ACCOUNT_TOKEN $SERVICE_ACCOUNT_TOKEN
-
 # Create cluster
-kubectl config set clusters $CLUSTER_NAME --server=$CLUSTER_HOST
+kubectl config set clusters.$CLUSTER_NAME.server $CLUSTER_HOST
 
 # Set CA-Cert for our cluster
 kubectl config set clusters.$CLUSTER_NAME.certificate-authority-data $(echo $CLUSTER_CA_CERT)
@@ -115,7 +111,9 @@ kubectl config set clusters.$CLUSTER_NAME.certificate-authority-data $(echo $CLU
 kubectl config set-credentials $SERVICE_ACCOUNT_NAME --token="$SERVICE_ACCOUNT_TOKEN"
 
 # Create context to join cluster, credentials and namespace
-kubectl config set-context $CLUSTER_NAME --cluster="$CLUSTER_NAME" --user="$SERVICE_ACCOUNT_NAME" --namespace="$CLUSTER_NAMESPACE"
+kubectl config set-context $CLUSTER_NAME --cluster=$CLUSTER_NAME --user=$SERVICE_ACCOUNT_NAME --namespace=$CLUSTER_NAMESPACE
+
+kubectl config set current-context $CLUSTER_NAME
 
 # Unset variables we are done with
 unset CLUSTER_CA_CERT
