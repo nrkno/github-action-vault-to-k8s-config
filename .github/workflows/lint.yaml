@@ -5,5 +5,5 @@ jobs:
   commitlint:
     uses: nrkno/github-workflow-semantic-release/.github/workflows/workflow.yaml@v1
     with:
-      runs-on: self-hosted
+      runs-on: ubuntu-22.04
       release-enabled: false
