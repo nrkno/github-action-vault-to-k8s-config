@@ -10,4 +10,4 @@ jobs:
   release:
     uses: nrkno/github-workflow-semantic-release/.github/workflows/workflow.yaml@v1
     with:
-      runs-on: self-hosted
+      runs-on: ubuntu-22.04
